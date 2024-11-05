@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/taha-shafa/Projects/RPC/build",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_IOSTREAMS_DYN_LINK -DBOOST_IOSTREAMS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream -std=gnu++17 -o CMakeFiles/RPC.dir/src/main.cpp.o -c /home/taha-shafa/Projects/RPC/src/main.cpp",
+  "file": "/home/taha-shafa/Projects/RPC/src/main.cpp",
+  "output": "CMakeFiles/RPC.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/taha-shafa/Projects/RPC/build",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_IOSTREAMS_DYN_LINK -DBOOST_IOSTREAMS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream -std=gnu++17 -o CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o -c /home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp",
+  "file": "/home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp",
+  "output": "CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o"
+},
+{
+  "directory": "/home/taha-shafa/Projects/RPC/build",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_IOSTREAMS_DYN_LINK -DBOOST_IOSTREAMS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream -std=gnu++17 -o CMakeFiles/RPC.dir/src/grs/grs.cpp.o -c /home/taha-shafa/Projects/RPC/src/grs/grs.cpp",
+  "file": "/home/taha-shafa/Projects/RPC/src/grs/grs.cpp",
+  "output": "CMakeFiles/RPC.dir/src/grs/grs.cpp.o"
+},
+{
+  "directory": "/home/taha-shafa/Projects/RPC/build",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_IOSTREAMS_DYN_LINK -DBOOST_IOSTREAMS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream -std=gnu++17 -o CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o -c /home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp",
+  "file": "/home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp",
+  "output": "CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o"
+},
+{
+  "directory": "/home/taha-shafa/Projects/RPC/build",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_IOSTREAMS_DYN_LINK -DBOOST_IOSTREAMS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream -std=gnu++17 -o CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o -c /home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp",
+  "file": "/home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp",
+  "output": "CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o"
+}
+]
