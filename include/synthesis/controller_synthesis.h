@@ -13,10 +13,12 @@ private:
     double delta_t;
     double epsilon;
     int k;
+    static constexpr int defaultIntegralTimeDiscretization = 500; // default of 500 steps for evaluating an integral
+    int integralTimeDiscretization = defaultIntegralTimeDiscretization;
     double t_final; // Duration of time in seconds we want to synthesize controller
     std::vector <double> t_span; // Overall time range
-    static constexpr double defaultIntegralTimeDiscretization = 500.0; // default of 500 steps for evaluating an integral
-    double integralTimeDiscretization = defaultIntegralTimeDiscretization;
+    std::vector<double> t_eval;
+    std::vector<double> t_eval_intvl;
     int stateDimension; // Number of states
     int inputDimension; // Number of inputs
     double tau;
@@ -33,7 +35,7 @@ private:
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics;
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics;
     // Temporary variable determining number of iterations during control synthesis
-    int iteration = 50;
+    int iteration = 70;
     
     // Orient to column vector for consistency in calculations
     Eigen::VectorXd columnVectorOrientation(const Eigen::VectorXd &vector) {
@@ -47,7 +49,7 @@ private:
       return container;
     }
 
-    // Calculate pseduoinverse of some matrix
+    // Calculate pseduoinverse of some matrix*/ 
     Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd &A);
 
   public:
@@ -59,7 +61,8 @@ private:
     Eigen::VectorXd getY() const;
     void setTheta(const std::vector<double>& new_theta);
     std::vector<double> getTheta() const;
-    void setIntegralTimeDiscretization(double new_integralTimeDiscretization); //Lower number = faster runtime, less accuracy
+    void setIntegralTimeDiscretization(int new_integralTimeDiscretization); //Lower number = faster runtime, less accuracy
+                                                                         //
     double getIntegralTimeDiscretization() const;
     // void setRadius(double new_r); // Can only set radius using k and delta_t
     double getRadius() const;
@@ -88,7 +91,7 @@ private:
     std::pair<double, Eigen::VectorXd> zSequence(const Eigen::VectorXd &center);
 
     // Approximate the minimum of the inner product of the gradient of d_z and f + gu by solving a linear programming problem to determine lambda
-    std::pair<Eigen::VectorXd, double> dist_true(Eigen::MatrixXd& x_vec, const Eigen::VectorXd& z, double integralTimeDiscretization = defaultIntegralTimeDiscretization);
+    std::pair<Eigen::VectorXd, double> dist_true(const Eigen::VectorXd& z);
 
     // Synthesize control and generate control trajectory
     void synthesizeControl();

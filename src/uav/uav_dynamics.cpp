@@ -4,9 +4,8 @@
 
 const double PI = 3.141592653589793;
 
-
 // Constructor implementation
-UavDynamics::UavDynamics(double radius, double length, double rotorMass, double mass, Eigen::VectorXd initStates, double lf, double lg)
+UavDynamics::UavDynamics(Eigen::VectorXd initStates, double lf, double lg, double radius, double length, double rotorMass, double mass)
   : R(radius), l(length), M_rotor(rotorMass), M(mass), initialStates(initStates), Lf(lf), Lg(lg),
     Jx(2 * M * std::pow(R, 2) / 5 + 2 * std::pow(l,2) * M_rotor),
     Jy(2 * M * std::pow(R, 2) / 5 + 2 * std::pow(l,2) * M_rotor),
@@ -57,6 +56,7 @@ void UavDynamics::setInitialStates(Eigen::VectorXd new_initialStates) {
 }
 
 // Setter for input vector field dynamics
+// Automatically calculate and update the smallest nonzero singular value once set
 void UavDynamics::setG0(Eigen::MatrixXd inputDynamics){
   G0 = inputDynamics;
   // Recalculate the new smallest singular value based on new G0

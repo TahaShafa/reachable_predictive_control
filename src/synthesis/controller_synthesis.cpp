@@ -10,18 +10,14 @@
 #include "solve_ode/solve_ode.h"
 #include "uav/uav_dynamics.h"
 
-ControllerSynthesis::ControllerSynthesis(std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics, std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics, Eigen::VectorXd initialState, Eigen::VectorXd y, Eigen::MatrixXd inputDynamics, int stateDimension, int inputDimension, double t_final, double epsilon, double k, double delta_t) : proxyDynamics(proxyDynamics), trueDynamics(trueDynamics), initialState(initialState), y(y), inputDynamics(inputDynamics), stateDimension(stateDimension), inputDimension(inputDimension), t_final(t_final), epsilon(epsilon), k(k), delta_t(delta_t) {
+ControllerSynthesis::ControllerSynthesis(std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics, std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics, Eigen::VectorXd initialState, Eigen::VectorXd y, Eigen::MatrixXd inputDynamics, int stateDimension, int inputDimension, double t_final, double epsilon, double k, double delta_t) : proxyDynamics(proxyDynamics), trueDynamics(trueDynamics), initialState(initialState), y(y), inputDynamics(inputDynamics), stateDimension(stateDimension), inputDimension(inputDimension), t_final(t_final), epsilon(epsilon), k(k), delta_t(delta_t){
   // Constructor -- setting initial conditions
   // Group of variables needed to evaluate integral solutions
   t_span = {0.0, t_final}; // Total span of time we synthesize control action for
-  // Generate t_eval: 500 points from 0 to T
-  Eigen::VectorXd t_eval = Eigen::VectorXd::LinSpaced(defaultIntegralTimeDiscretization, 0.0, t_final);
-  // Generate t_eval_intvl: 500 points from 0 to dt
-  Eigen::VectorXd t_eval_intvl = Eigen::VectorXd::LinSpaced(defaultIntegralTimeDiscretization, 0.0, delta_t);
+  setIntegralTimeDiscretization(integralTimeDiscretization);
 
   tau = delta_t * (inputDimension + 1); // tau needs to be defined before r
   r = radius(k); // Generate circle of convergence
-
   // Create containers to hold the controlled trajectory, control signals, and theta
   // Controlled Trajectory
   initialState = columnVectorOrientation(initialState);
@@ -40,8 +36,8 @@ ControllerSynthesis::ControllerSynthesis(std::function<Eigen::VectorXd(double, E
   // Update states and inputs with the initial reached state and corresponding control u_{0,0}
   states.conservativeResize(initialState.size(), 1);
   initialTrajectory(u0);
-  std::cout << "Updated states: " << states.transpose() << std::endl;
-  std::cout << "Updated Inputs: " << inputs.transpose() << std::endl;
+  //std::cout << "Updated states: " << states.transpose() << std::endl;
+  //std::cout << "Updated Inputs: " << inputs.transpose() << std::endl;
 }
 
 // Getter and setter functions
@@ -80,9 +76,26 @@ std::vector<double> ControllerSynthesis::getTheta() const {
   return theta;
 }
 
-void ControllerSynthesis::setIntegralTimeDiscretization(double new_integralTimeDiscretication) {
+void ControllerSynthesis::setIntegralTimeDiscretization(int new_integralTimeDiscretication) {
   integralTimeDiscretization = new_integralTimeDiscretication;
+
+  // Generate t_eval: 500 points from 0 to T
+  t_eval.resize(integralTimeDiscretization);
+  double step_eval = t_final / (integralTimeDiscretization - 1);
+  for (int i = 0; i < integralTimeDiscretization; ++i) {
+      t_eval[i] = i * step_eval;
+  }
+
+  // Generate t_eval_intvl: 500 points from 0 to delta_t
+  t_eval_intvl.resize(integralTimeDiscretization);
+  double step_intvl = delta_t / (integralTimeDiscretization - 1);
+  for (int i = 0; i < integralTimeDiscretization; ++i) {
+      t_eval_intvl[i] = i * step_intvl;
+      std::cout << t_eval_intvl[i] << " ";
+  }
+  std::cout << std::endl;
 }
+
 double ControllerSynthesis::getIntegralTimeDiscretization() const {
   return integralTimeDiscretization;
 }
@@ -141,7 +154,7 @@ Eigen::VectorXd ControllerSynthesis::initialInput() {
   Eigen::MatrixXd G0_inv = pseudoInverse(inputDynamics);
 
   // Compute the 2-norm of G0_inv
-  double G0_inv_norm = G0_inv.norm();
+  double G0_inv_norm = G0_inv.jacobiSvd().singularValues()(0);
 
   // Calculate the initial control
   Eigen::VectorXd initialControl = (G0_inv * u_hat) / G0_inv_norm * (1 - epsilon);
@@ -206,11 +219,14 @@ Eigen::MatrixXd ControllerSynthesis::learnCycleInputs(Eigen::VectorXd u) {
 void ControllerSynthesis::initialTrajectory(Eigen::VectorXd u0) {
   u0 = columnVectorOrientation(u0);
   Eigen::MatrixXd u_int = learnCycleInputs(u0);
+  std::cout << "u_int: " << u_int << std::endl;
+  std::cout << "inputs: " << inputs << std::endl;
   
   // Solve ODE with initial state x0 and control input u0
   Eigen::VectorXd x0 = initialState;
+  std::cout << "initial state: " << x0 << std::endl;
   SolveODE solver(x0);
-  auto soln_dt = solver.integrate(trueDynamics, u0, 0.0, delta_t, delta_t);
+  auto soln_dt = solver.solveOdeControl(trueDynamics, x0, u0, t_eval_intvl);
   
   bool is_first_iteration = true;
     // Append the solution to `states` without intermediate resizing
@@ -221,7 +237,7 @@ void ControllerSynthesis::initialTrajectory(Eigen::VectorXd u0) {
         }
       states.conservativeResize(Eigen::NoChange, states.cols() + 1);
       states.col(states.cols() - 1) = state;
-      std::cout << "Current State: " << state.transpose() << std::endl;
+      // std::cout << "Current State: " << state.transpose() << std::endl;
     }
 
     // Solve ODE within each interval [tau_n + i*dt, tau_n+(i+1)*dt]
@@ -230,12 +246,15 @@ void ControllerSynthesis::initialTrajectory(Eigen::VectorXd u0) {
         x0 = states.col(states.cols() - 1);
         solver.setState(x0); //reinitialize the initial state
 
+        std::cout << "u_int.row(i).transpose(): " << u_int.row(i).transpose() << std::endl;
+
         // Solve ODE with each intermediate control input u_int.row(i)
-        soln_dt = solver.integrate(trueDynamics, u_int.row(i).transpose(), 0.0, delta_t, delta_t);
+        soln_dt = solver.solveOdeControl(trueDynamics, x0, u_int.row(i).transpose(), t_eval_intvl);
         
         // Append the control input to `inputs`
         inputs.conservativeResize(inputs.rows(), inputs.cols() + 1);
         inputs.col(inputs.cols() - 1) = u_int.row(i).transpose();
+        std::cout << "New Inputs: " << inputs << std::endl;
 
       // Reset the boolean to avoid recording repeated states
       is_first_iteration = true;
@@ -248,7 +267,7 @@ void ControllerSynthesis::initialTrajectory(Eigen::VectorXd u0) {
         // Resize state and append the last column
         states.conservativeResize(Eigen::NoChange, states.cols() + 1);
         states.col(states.cols() - 1) = state;
-        std::cout << "Current State: " << state.transpose() << std::endl;
+        // std::cout << "After 500 Current State: " << state.transpose() << ",\t" << "State Length: " << states.cols() << std::endl;
       }
     }
 }
@@ -300,50 +319,37 @@ std::pair<double, Eigen::VectorXd> ControllerSynthesis::zSequence(const Eigen::V
 }
 
 // Approximate the minimum of the inner product of the gradient of d_z and f + gu by solving a linear programming problem to determine lambda
-std::pair<Eigen::VectorXd, double> ControllerSynthesis::dist_true(Eigen::MatrixXd& x_vec, const Eigen::VectorXd& z, double integralTimeDiscretization) {
+std::pair<Eigen::VectorXd, double> ControllerSynthesis::dist_true(const Eigen::VectorXd& z) {
   // Gradient and difference computation
-  std::cout << "x_vec: " << x_vec.transpose() << std::endl;
-  Eigen::VectorXd grad = 2 * (x_vec.col(x_vec.cols() - 1) - z);
+  Eigen::VectorXd grad = 2 * (states.col(states.cols() - 1) - z);
+
+  std::vector<Eigen::VectorXd> x_vec_reverse;
+  for (int m = 0; m <= this->inputDimension; ++m) {
+    int col_index = states.cols() - 1 - m * (integralTimeDiscretization - 1);
+    std::cout << "col_index: " << col_index << std::endl;
+    x_vec_reverse.push_back(states.col(col_index));
+  }
+
+  int additional_col_index = states.cols() - inputDimension * (integralTimeDiscretization - 1) - integralTimeDiscretization;
+  x_vec_reverse.push_back(states.col(additional_col_index));
+
+  //std::cout << "Additional Column Index: " << additional_col_index << std::endl;
+
+  Eigen::MatrixXd x_vec(x_vec_reverse[0].size(), x_vec_reverse.size());
+  for (size_t i = 0; i < x_vec_reverse.size(); ++i) {
+    x_vec.col(x_vec_reverse.size() - i - 1) = x_vec_reverse[i];
+  }
+
+  std::cout << "x_vec Original: " << x_vec << std::endl;
+
+  Eigen::MatrixXd x_vec_diff = (x_vec.rightCols(x_vec.cols() - 1) - x_vec.leftCols(x_vec.cols() - 1)) / delta_t;
 
   // Define the number of columns to print, which is m + 1
   int columns_to_save = inputDimension + 1;
 
-  // Ensure we are not accessing more columns than available
-  int start_col = (x_vec.cols() > columns_to_save) ? x_vec.cols() - columns_to_save : 0;
-
-  Eigen::MatrixXd x_vec_diff = x_vec.block(0, start_col, x_vec.rows(), columns_to_save);
-
     for (int i = 0; i < columns_to_save; ++i) {
     std::cout << "Last Column " << i << ": " << x_vec_diff.col(i).transpose() << std::endl;
   }
-
-  /*// Generate x_vec_reverse of size m+1*/
-  /*std::vector<Eigen::VectorXd> x_vec_reverse;*/
-  /*//int time_discretization = static_cast<int>(integralTimeDiscretization);*/
-  /**/
-  /*for (int m = 0; m <= inputDimension; ++m) {*/
-  /*      int col_index = x_vec.cols() - 1 - m;*/
-  /*      std::cout << "column index: " << col_index << std::endl;*/
-  /*      x_vec_reverse.push_back(x_vec.col(col_index));*/
-  /*      std::cout << "x_vec_reverse: " << x_vec.col(col_index) << std::endl;*/
-  /*  }*/
-  /**/
-  /*  int additional_col_index = x_vec.cols() - inputDimension - 1;*/
-  /*  x_vec_reverse.push_back(x_vec.col(additional_col_index));*/
-  /**/
-  /*  // Reverse the vector into a matrix*/
-  /*  Eigen::MatrixXd x_vec_mat(x_vec_reverse[0].size(), x_vec_reverse.size());*/
-  /*  for (size_t i = 0; i < x_vec_reverse.size(); ++i) {*/
-  /*      x_vec_mat.col(x_vec_reverse.size() - i - 1) = x_vec_reverse[i];*/
-  /*  }*/
-  /**/
-  /*  // Step 4: Calculate `x_vec_difference`*/
-  /*  Eigen::MatrixXd x_vec_diff = (x_vec_mat.rightCols(x_vec_mat.cols() - 1) - x_vec_mat.leftCols(x_vec_mat.cols() - 1));*/
-  /**/
-  /*  std::cout << "x_vec: " << x_vec << std::endl;*/
-  /*  std::cout << "x_vec_difference: " << x_vec_diff << std::endl;*/
-
-  /*Eigen::MatrixXd x_vec_diff = (x_vec.rightCols(x_vec.cols() - 1) - x_vec.leftCols(x_vec.cols() - 1));*/
 
   std::cout << "x_vec_difference: " << x_vec_diff << std::endl;
 
@@ -360,12 +366,9 @@ std::pair<Eigen::VectorXd, double> ControllerSynthesis::dist_true(Eigen::MatrixX
   glp_set_prob_name(lp, "dist_true");  // Set problem name
   glp_set_obj_dir(lp, GLP_MIN);      // Set minimization
 
-  std::cout << "dist_true 2" << std::endl;
-
   // Add variables (columns)
   glp_add_cols(lp, num_vars);
 
-  std::cout << "dist_true 3" << std::endl;
   for (int i = 1; i <= num_vars; ++i) {
       glp_set_col_bnds(lp, i, GLP_DB, 0.0, 1.0);  // Bounds 0 <= lambda_i <= 1
   }
@@ -424,115 +427,187 @@ std::pair<Eigen::VectorXd, double> ControllerSynthesis::dist_true(Eigen::MatrixX
   return std::make_pair(lambda_optimal, objective_value);
 }
 
-void ControllerSynthesis::synthesizeControl() {
-    // Instantiate SolveODE with the initial last state of states
-    SolveODE solver(states.col(states.cols() - 1));
-    // Convert Eigen::MatrixXd x_vec to std::vector for gnuplot-iostream compatibility
-    std::vector<std::pair<double, double>> x_vec_data;
-    
-    // Print the last state in states
-    std::cout << "Last state:\n" << states.col(states.cols() - 1).transpose() << std::endl;
+/*void ControllerSynthesis::synthesizeControl() {*/
+/*    // Instantiate SolveODE with the initial last state of states*/
+/*    SolveODE solver(states.col(states.cols() - 1));*/
+/*    // Convert Eigen::MatrixXd x_vec to std::vector for gnuplot-iostream compatibility*/
+/*    std::vector<std::pair<double, double>> x_vec_data;*/
+/**/
+/*    // Print the last state in states*/
+/*    std::cout << "Last state:\n" << states.col(states.cols() - 1).transpose() << std::endl;*/
+/**/
+/*    // Initialize z and lambda based on the last state*/
+/*    double t;*/
+/*    Eigen::VectorXd z;*/
+/**/
+/*    std::cout << "zSequence error " << std::endl;*/
+/**/
+/*    std::tie(t, z) = zSequence(states.col(states.cols() - 1));*/
+/**/
+/*    std::cout << "Test print 0.0 " << std::endl;*/
+/**/
+/*    Eigen::VectorXd lambda_optimal;*/
+/*    double q;*/
+/**/
+/*    std::cout << "Test print 0 " << std::endl;*/
+/**/
+/*    std::tie(lambda_optimal, q) = dist_true(states, z, integralTimeDiscretization);*/
+/**/
+/*    std::cout << "Test print 1 " << std::endl;*/
+/**/
+/*    for (int i = 0; i < iteration; ++i) {*/
+/*        std::cout << "Iteration: " << i << std::endl;*/
+/*        std::cout << "Lambda optimal: " << lambda_optimal.transpose() << std::endl;*/
+/*        std::cout << "cwise Product: " << getInputs().rightCols(inputDimension + 1).colwise().reverse() << std::endl; */
+/*        // Reverse the last `inputDimension + 1` columns of `getInputs()`*/
+/*        Eigen::MatrixXd reversedInputs = getInputs().rightCols(inputDimension + 1).colwise().reverse();*/
+/*        // Control synthesis using the optimal lambda*/
+/*        Eigen::VectorXd u = (1 - epsilon) * (lambda_optimal.transpose() * reversedInputs.transpose());*/
+/**/
+/*        // Determine intermediate control inputs*/
+/*        Eigen::MatrixXd u_int = learnCycleInputs(u);*/
+/**/
+/*        // Update solver's initial state to the last state in states*/
+/*        solver.setState(states.col(states.cols() - 1));*/
+/**/
+/*        // Define tau_n as a function of tau and the number of iterations to reach y*/
+/*        double tau_n = iteration * tau;*/
+/**/
+/*        // Solve ODE within [tau_n, tau_n + dt] and update states*/
+/*        auto soln_dt = solver.integrate(trueDynamics, u, tau_n, tau_n + delta_t, delta_t);*/
+/**/
+/*        bool is_first_iteration = true;*/
+/*        // Append the solution to `states` without intermediate resizing*/
+/*        for (const auto& [time, state] : soln_dt) {      // Resize state and append the last column*/
+/*          if (is_first_iteration) {*/
+/*            is_first_iteration = false; // Skip the first iteration and move to the next one*/
+/*            continue;*/
+/*          }*/
+/*          states.conservativeResize(Eigen::NoChange, states.cols() + 1);*/
+/*          states.col(states.cols() - 1) = state;*/
+/*          std::cout << "Current State: " << state.transpose() << std::endl;*/
+/*        }*/
+/**/
+/*        // Solve ODE within each interval [tau_n + i*dt, tau_n + (i+1)*dt]*/
+/*        for (int j = 0; j < stateDimension; ++j) {*/
+/*          // Extract the j-th row of u_int as the control input for this interval*/
+/*          Eigen::VectorXd initial_state = u_int.row(j).transpose(); // Convert row to column vector*/
+/**/
+/*          // Update solver's initial state for each interval*/
+/*          solver.setState(states.col(states.cols() - 1));*/
+/*          auto soln_dt = solver.integrate(trueDynamics, initial_state, tau_n + j * delta_t, tau_n + (j + 1) * delta_t, delta_t);*/
+/**/
+/*          // Resize `inputs` to add the j-th row as the last column*/
+/*          inputs.conservativeResize(inputs.rows(), inputs.cols() + 1);*/
+/*          inputs.col(inputs.cols() - 1) = u_int.row(j).transpose();*/
+/**/
+/*          // Reset the boolean to avoid recording repeated states*/
+/*          is_first_iteration = true;*/
+/*          // Append the solution to `states` without intermediate resizing*/
+/*          for (const auto& [time, state] : soln_dt) {      // Resize state and append the last column*/
+/*            if (is_first_iteration) {*/
+/*              is_first_iteration = false; // Skip the first iteration and move to the next one*/
+/*              continue;*/
+/*            }*/
+/*            states.conservativeResize(Eigen::NoChange, states.cols() + 1);*/
+/*            states.col(states.cols() - 1) = state;*/
+/*            std::cout << "Current State: " << state.transpose() << std::endl;*/
+/*          }*/
+/*        }*/
+/**/
+/*        // Update z_n and lambda for the next iteration*/
+/*        std::tie(t, z) = zSequence(states.col(states.cols() - 1));*/
+/*        std::tie(lambda_optimal, q) = dist_true(states, z, integralTimeDiscretization);*/
+/**/
+/*    }*/
+/**/
+/*    *Gnuplot gp;*/
+/*    Eigen::VectorXd y(2);*/
+/*    y << -21.59829362, -6.38579617;*/
+/*    // Convert y to a std::vector with a single point*/
+/*    std::vector<std::pair<double, double>> y_data = {{y(0), y(1)}};*/
+/**/
+/*  std::vector<std::pair<double, double>> state_data;*/
+/*  for (int i = 0; i < states.cols(); ++i) {*/
+/*      state_data.emplace_back(states(0, i), states(1, i));*/
+/*  }*/
+/**/
+/*  // Initialize Gnuplot*/
+/*Gnuplot gp;*/
+/*gp << "set title 'Trajectory Plot of States'\n";*/
+/*gp << "plot '-' with lines title 'States Trajectory', '-' with points title 'Y Point'\n";*/
+/*gp.send1d(state_data);*/
+/*gp.send1d(y_data);      // Send y data as a point plot*/
+/*}*/
 
-    // Initialize z and lambda based on the last state
+void ControllerSynthesis::synthesizeControl() {
+    SolveODE solver(states.col(states.cols() - 1));
+
     double t;
     Eigen::VectorXd z;
-
-    std::cout << "zSequence error " << std::endl;
-
     std::tie(t, z) = zSequence(states.col(states.cols() - 1));
-    
-    std::cout << "Test print 0.0 " << std::endl;
 
     Eigen::VectorXd lambda_optimal;
     double q;
+    std::tie(lambda_optimal, q) = dist_true(z);
+
+    std::cout << "lambda_optimal: " << lambda_optimal.transpose() << std::endl;
+
+    std::cout << "Current State: " << states.col(states.cols() - 1) << std::endl;
+
+    std::cout << "getInputs: " << getInputs().rightCols(inputDimension + 1).colwise().reverse() << std::endl;
+
+    std::cout << "getInputs Transpose: " << getInputs().rightCols(inputDimension + 1).colwise().reverse().transpose() << std::endl;
     
-    std::cout << "Test print 0 " << std::endl;
-
-    std::tie(lambda_optimal, q) = dist_true(states, z, integralTimeDiscretization);
-
-    std::cout << "Test print 1 " << std::endl;
-
     for (int i = 0; i < iteration; ++i) {
-        std::cout << "Iteration: " << i << std::endl;
-        std::cout << "Lambda optimal: " << lambda_optimal.transpose() << std::endl;
-        std::cout << "cwise Product: " << getInputs().rightCols(inputDimension + 1).colwise().reverse() << std::endl; 
-        // Reverse the last `inputDimension + 1` columns of `getInputs()`
-        Eigen::MatrixXd reversedInputs = getInputs().rightCols(inputDimension + 1).colwise().reverse();
-        // Control synthesis using the optimal lambda
-        Eigen::VectorXd u = (1 - epsilon) * (lambda_optimal.transpose() * reversedInputs.transpose());
+      std::cout << "Iteration: " << i << std::endl;
+      Eigen::VectorXd u = (1 - epsilon) * (lambda_optimal.transpose() * getInputs().rightCols(inputDimension + 1).transpose());
+      std::cout << "Post Iteration Input: " << u << std::endl;
 
-        // Determine intermediate control inputs
+        // Intermediate control inputs
         Eigen::MatrixXd u_int = learnCycleInputs(u);
 
-        // Update solver's initial state to the last state in states
-        solver.setState(states.col(states.cols() - 1));
-
-        // Define tau_n as a function of tau and the number of iterations to reach y
-        double tau_n = iteration * tau;
-
-        // Solve ODE within [tau_n, tau_n + dt] and update states
-        auto soln_dt = solver.integrate(trueDynamics, u, tau_n, tau_n + delta_t, delta_t);
-        
-        bool is_first_iteration = true;
-        // Append the solution to `states` without intermediate resizing
-        for (const auto& [time, state] : soln_dt) {      // Resize state and append the last column
-          if (is_first_iteration) {
-            is_first_iteration = false; // Skip the first iteration and move to the next one
-            continue;
-          }
-          states.conservativeResize(Eigen::NoChange, states.cols() + 1);
-          states.col(states.cols() - 1) = state;
-          std::cout << "Current State: " << state.transpose() << std::endl;
-        }
-
-        // Solve ODE within each interval [tau_n + i*dt, tau_n + (i+1)*dt]
-        for (int j = 0; j < stateDimension; ++j) {
-          // Extract the j-th row of u_int as the control input for this interval
-          Eigen::VectorXd initial_state = u_int.row(j).transpose(); // Convert row to column vector
-
-          // Update solver's initial state for each interval
-          solver.setState(states.col(states.cols() - 1));
-          auto soln_dt = solver.integrate(trueDynamics, initial_state, tau_n + j * delta_t, tau_n + (j + 1) * delta_t, delta_t);
-
-          // Resize `inputs` to add the j-th row as the last column
-          inputs.conservativeResize(inputs.rows(), inputs.cols() + 1);
-          inputs.col(inputs.cols() - 1) = u_int.row(j).transpose();
-
-          // Reset the boolean to avoid recording repeated states
-          is_first_iteration = true;
-          // Append the solution to `states` without intermediate resizing
-          for (const auto& [time, state] : soln_dt) {      // Resize state and append the last column
-            if (is_first_iteration) {
-              is_first_iteration = false; // Skip the first iteration and move to the next one
-              continue;
-            }
+        // Solve ODE over [t_n, t_n+dt] with most recent state as initial condition
+        auto soln_dt = solver.solveOdeControl(trueDynamics, states.col(states.cols() - 1), u, t_eval_intvl);
+        for (const auto& [time, state] : soln_dt) {
             states.conservativeResize(Eigen::NoChange, states.cols() + 1);
             states.col(states.cols() - 1) = state;
-            std::cout << "Current State: " << state.transpose() << std::endl;
-          }
         }
 
-        // Update z_n and lambda for the next iteration
-        std::tie(t, z) = zSequence(states.col(states.cols() - 1));
-        std::tie(lambda_optimal, q) = dist_true(states, z, integralTimeDiscretization);
+        // Solve ODE within [tau_n + (i * dt), tau_n + (i + 1) * dt] intervals
+        for (int j = 0; j < u_int.rows(); ++j) {
+            Eigen::VectorXd x0 = states.col(states.cols() - 1);
+            Eigen::VectorXd u_segment = u_int.row(j).transpose();
+            auto soln_dt_interval = solver.solveOdeControl(trueDynamics, x0, u_segment, t_eval_intvl);
 
+            for (const auto& [time, state] : soln_dt_interval) {
+                states.conservativeResize(Eigen::NoChange, states.cols() + 1);
+                states.col(states.cols() - 1) = state;
+            }
+            inputs.conservativeResize(inputs.rows(), inputs.cols() + 1);
+            inputs.col(inputs.cols() - 1) = u_segment;
+        }
+
+        // Update z and lambda for the next iteration
+        std::tie(t, z) = zSequence(states.col(states.cols() - 1));
+        std::tie(lambda_optimal, q) = dist_true(z);
     }
 
-    /*Gnuplot gp;*/
+        // Plotting results
     Eigen::VectorXd y(2);
     y << -21.59829362, -6.38579617;
-    // Convert y to a std::vector with a single point
     std::vector<std::pair<double, double>> y_data = {{y(0), y(1)}};
 
-  std::vector<std::pair<double, double>> state_data;
-  for (int i = 0; i < states.cols(); ++i) {
-      state_data.emplace_back(states(0, i), states(1, i));
-  }
+    // Prepare state data for Gnuplot
+    std::vector<std::pair<double, double>> state_data;
+    for (int i = 0; i < states.cols(); ++i) {
+        state_data.emplace_back(states(0, i), states(1, i));
+    }
 
-  // Initialize Gnuplot
-Gnuplot gp;
-gp << "set title 'Trajectory Plot of States'\n";
-gp << "plot '-' with lines title 'States Trajectory', '-' with points title 'Y Point'\n";
-gp.send1d(state_data);
-gp.send1d(y_data);      // Send y data as a point plot
+    // Plot using Gnuplot
+    Gnuplot gp;
+    gp << "set title 'Trajectory Plot of States'\n";
+    gp << "plot '-' with lines title 'States Trajectory', '-' with points title 'Y Point'\n";
+    gp.send1d(state_data);
+    gp.send1d(y_data);
 }

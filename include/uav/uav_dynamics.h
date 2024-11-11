@@ -21,7 +21,7 @@ class UavDynamics {
     double smallestSingularValue;
   public:
     // Constructor
-    UavDynamics(double radius, double length, double rotorMass, double mass, Eigen::VectorXd initialStates, double Lf, double Lg);
+    UavDynamics(Eigen::VectorXd initialStates, double Lf, double Lg, double radius = 0.1, double length = 0.5, double rotorMass = 0.01, double mass = 1.0);
                                                     //
     // Inline getter and setter for drift dynamcs f at x0
     Eigen::VectorXd getf0() const; // Getter for f0
