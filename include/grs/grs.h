@@ -112,8 +112,11 @@ class GRS {
     // Compute the derivative using Eigen::VectorXd in your proxyDynamics function
     Eigen::VectorXd dydt = uav.proxyDynamics(t, y, inputs);
 
+    // Ensure dydt_std has the correct size
+    dydt_std.resize(dydt.size());
+
     // Convert Eigen::VectorXd back to std::vector<double> for Boost.ODEInt
-    Eigen::Map<Eigen::VectorXd>(dydt_std.data(), dydt_std.size()) = dydt;
+    Eigen::Map<Eigen::VectorXd>(dydt_std.data(), dydt.size()) = dydt;
 }
 
 // Generic integration function
