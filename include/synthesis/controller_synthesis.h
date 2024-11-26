@@ -35,7 +35,7 @@ private:
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics;
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics;
     // Temporary variable determining number of iterations during control synthesis
-    int iteration = 70;
+    int iteration = 60;
     
     // Orient to column vector for consistency in calculations
     Eigen::VectorXd columnVectorOrientation(const Eigen::VectorXd &vector) {
@@ -52,9 +52,15 @@ private:
     // Calculate pseduoinverse of some matrix*/ 
     Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd &A);
 
+    // Generate a circle of variable radius for plots
+    std::vector<std::pair<double, double>> generateCircle(double radius, double x_center = 1.0, double y_center = 1.0, int numPoints = 500);
+
   public:
     // Constructor
     ControllerSynthesis(std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics, std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics, Eigen::VectorXd initialState, Eigen::VectorXd y, Eigen::MatrixXd inputDynamics, int stateDimension, int inputDimension, double t_final, double epsilon, double k, double delta_t);
+
+    // Run function to determine the initial controls and corresponding trajectory
+    void initializeController();
 
     // Getter and setter functions
     void setY(const Eigen::VectorXd& new_y);
@@ -72,6 +78,8 @@ private:
     double getK() const;
     void setDelta_t(double delta_t);
     double getDelta_t() const;
+    void setInitialState(Eigen::VectorXd newInitialState);
+    Eigen::VectorXd getInitialState() const;
     Eigen::MatrixXd getStates() const;
     Eigen::MatrixXd getInputs() const;
 
@@ -81,10 +89,16 @@ private:
     // Provide an initial update to the states from their initial position using u_{0,0}
     void initialTrajectory(Eigen::VectorXd u0);
 
+    // Generate linear target trajectory given x0 and y
+    std::vector<std::pair<double, double>> generateLinearTrajectory(
+      const Eigen::VectorXd& x0,
+      const Eigen::VectorXd& xf,
+      int steps = 500);
+
     // Function that returns radius using k and delta_t
     double radius(int K = -1); // Default argument as placeholder (-1)
 
-    // Generate learn cycle inputs (delta_u) where each inputs is \pm e_i * epsilon added with the input at u_{n,0}, i.e., generate u_{n,j}
+    // Generate learn cycle inputs (delta_u) where each inputs is \pm e_i * epsilon added with the input at uLLL_{n,0}, i.e., generate u_{n,j}
     Eigen::MatrixXd learnCycleInputs(Eigen::VectorXd u); 
 
     // Function to compute the intersection between a line and a circle
@@ -94,7 +108,15 @@ private:
     std::pair<Eigen::VectorXd, double> dist_true(const Eigen::VectorXd& z);
 
     // Synthesize control and generate control trajectory
-    void synthesizeControl();
+    std::pair<Eigen::VectorXd, Eigen::MatrixXd> synthesizeControl(bool view_plot = false, bool save_plot = false);
+
+    // Save plots to figures
+    void savePlotToFigures(
+      const std::vector<std::pair<double, double>> &synthesizedTrajectory,
+      const std::vector<std::pair<double, double>> &desiredTrajectory,
+      int iteration = 0,
+      const std::vector<std::pair<double, double>> &convergentRadius = {},
+      const std::vector<std::pair<double, double>> &reachableSet = {});
 
 };
 

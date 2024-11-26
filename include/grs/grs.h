@@ -13,6 +13,8 @@ class GRS {
   private:
 
     Eigen::VectorXd initialStates;
+    static constexpr int defaultResolution = 2000;
+    int resolution = defaultResolution;
 
     // Generate a random d-dimensional unit vector
     Eigen::VectorXd randomNormEqualOne(int d) {
@@ -22,15 +24,14 @@ class GRS {
     }
     
     // Generate a ball of radius one with user-defined resolution
-    Eigen::MatrixXd createBall(int resolution) {
+    Eigen::MatrixXd createBall(int resolution = defaultResolution) {
       Eigen::MatrixXd ball(2, resolution + 1);  // Create a 2x(resolution+1) matrix
-
 
       for (int i = 0; i <= resolution; ++i) {
         double angle = 2.0 * PI * static_cast<double>(i) / resolution;
         ball(0, i) = std::cos(angle);  // x-coordinate
         ball(1, i) = std::sin(angle);  // y-coordinate
-   }
+      }
 
       return ball;
     }
@@ -41,6 +42,12 @@ class GRS {
     // Define a setter for the initial states 
     void setInitialState(Eigen::VectorXd initStates);
     Eigen::VectorXd getInitialStates() const;
+    void setResolution(int newResolution);
+    int getResolution() const;
+
+    // Assign random point at the boundary of the proxy reachable set
+    Eigen::VectorXd randomReachableState(UavDynamics &uav, double t_start, double t_end, double dt);
+
 
     // Generate the proxy reachable set data
     Eigen::MatrixXd proxyReahcableSet(const std::vector<double> &y_std, std::vector<double> &dydt_std, double t, UavDynamics &uav, const Eigen::VectorXd &initialStates, const Eigen::VectorXd &inputs);
@@ -119,9 +126,9 @@ class GRS {
     Eigen::Map<Eigen::VectorXd>(dydt_std.data(), dydt.size()) = dydt;
 }
 
-// Generic integration function
-    template <typename Solver>
-void integrateProxySystem(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, Eigen::VectorXd &inputs, double t_start, double t_end, double dt, std::vector<std::pair<double, double>> &trajectory) {
+  // Generic integration function
+  template <typename Solver>
+  void integrateProxySystem(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, Eigen::VectorXd &inputs, double t_start, double t_end, double dt, std::vector<std::pair<double, double>> &trajectory) {
 
     // Store the initial conditions to reset y_std after each time this is called
     Eigen::VectorXd y_initial = y;
@@ -150,11 +157,9 @@ void integrateProxySystem(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, E
     y = y_initial;
 }
 
-
-
     // Generate the true reachable set data
     template <typename Solver>
-    std::vector<std::pair<double, double>> proxyReachableSet(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, int resolution, double t_start, double t_end, double dt) {
+    std::vector<std::pair<double, double>> proxyReachableSet(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, double t_start, double t_end, double dt, int resolution = defaultResolution) {
       
       // Declare system inputs
       Eigen::VectorXd inputs(2);
@@ -172,7 +177,6 @@ void integrateProxySystem(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, E
       }
 
       return trajectory;
-
     }
 
 
@@ -234,7 +238,7 @@ void integrateProxySystem(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, E
 
     // Generate the true reachable set data
     template <typename Solver>
-    std::vector<std::pair<double, double>> trueReachableSet(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, int resolution, double t_start, double t_end, double dt) {
+    std::vector<std::pair<double, double>> trueReachableSet(Solver solver, Eigen::VectorXd &y, UavDynamics &uav, double t_start, double t_end, double dt, int resolution = defaultResolution) {
       
       // Declare system inputs
       Eigen::VectorXd inputs(2);
