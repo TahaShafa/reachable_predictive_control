@@ -83,85 +83,22 @@ CMakeFiles/RPC.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/RPC.dir/src/main.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/taha-shafa/Projects/RPC/src/main.cpp -o CMakeFiles/RPC.dir/src/main.cpp.s
 
-CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o: CMakeFiles/RPC.dir/flags.make
-CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o: /home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp
-CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o: CMakeFiles/RPC.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o -MF CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o.d -o CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o -c /home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp
-
-CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp > CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.i
-
-CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/taha-shafa/Projects/RPC/src/uav/uav_dynamics.cpp -o CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.s
-
-CMakeFiles/RPC.dir/src/grs/grs.cpp.o: CMakeFiles/RPC.dir/flags.make
-CMakeFiles/RPC.dir/src/grs/grs.cpp.o: /home/taha-shafa/Projects/RPC/src/grs/grs.cpp
-CMakeFiles/RPC.dir/src/grs/grs.cpp.o: CMakeFiles/RPC.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/RPC.dir/src/grs/grs.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/RPC.dir/src/grs/grs.cpp.o -MF CMakeFiles/RPC.dir/src/grs/grs.cpp.o.d -o CMakeFiles/RPC.dir/src/grs/grs.cpp.o -c /home/taha-shafa/Projects/RPC/src/grs/grs.cpp
-
-CMakeFiles/RPC.dir/src/grs/grs.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/RPC.dir/src/grs/grs.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/taha-shafa/Projects/RPC/src/grs/grs.cpp > CMakeFiles/RPC.dir/src/grs/grs.cpp.i
-
-CMakeFiles/RPC.dir/src/grs/grs.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/RPC.dir/src/grs/grs.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/taha-shafa/Projects/RPC/src/grs/grs.cpp -o CMakeFiles/RPC.dir/src/grs/grs.cpp.s
-
-CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o: CMakeFiles/RPC.dir/flags.make
-CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o: /home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp
-CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o: CMakeFiles/RPC.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o -MF CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o.d -o CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o -c /home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp
-
-CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp > CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.i
-
-CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/taha-shafa/Projects/RPC/src/synthesis/controller_synthesis.cpp -o CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.s
-
-CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o: CMakeFiles/RPC.dir/flags.make
-CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o: /home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp
-CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o: CMakeFiles/RPC.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o -MF CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o.d -o CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o -c /home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp
-
-CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp > CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.i
-
-CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/taha-shafa/Projects/RPC/src/solve_ode/solve_ode.cpp -o CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.s
-
 # Object files for target RPC
 RPC_OBJECTS = \
-"CMakeFiles/RPC.dir/src/main.cpp.o" \
-"CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o" \
-"CMakeFiles/RPC.dir/src/grs/grs.cpp.o" \
-"CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o" \
-"CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o"
+"CMakeFiles/RPC.dir/src/main.cpp.o"
 
 # External object files for target RPC
 RPC_EXTERNAL_OBJECTS =
 
 RPC: CMakeFiles/RPC.dir/src/main.cpp.o
-RPC: CMakeFiles/RPC.dir/src/uav/uav_dynamics.cpp.o
-RPC: CMakeFiles/RPC.dir/src/grs/grs.cpp.o
-RPC: CMakeFiles/RPC.dir/src/synthesis/controller_synthesis.cpp.o
-RPC: CMakeFiles/RPC.dir/src/solve_ode/solve_ode.cpp.o
 RPC: CMakeFiles/RPC.dir/build.make
+RPC: librpc_core.a
 RPC: /usr/lib/x86_64-linux-gnu/libboost_system.so.1.83.0
 RPC: /usr/lib/x86_64-linux-gnu/libboost_filesystem.so.1.83.0
 RPC: /usr/lib/x86_64-linux-gnu/libboost_iostreams.so.1.83.0
 RPC: /usr/lib/x86_64-linux-gnu/libboost_atomic.so.1.83.0
 RPC: CMakeFiles/RPC.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable RPC"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/taha-shafa/Projects/RPC/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable RPC"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/RPC.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

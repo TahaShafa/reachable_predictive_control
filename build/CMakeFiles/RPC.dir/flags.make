@@ -6,5 +6,5 @@ CXX_DEFINES = -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_D
 
 CXX_INCLUDES = -I/home/taha-shafa/Projects/RPC/include -I/usr/include/eigen3 -I/home/taha-shafa/Projects/RPC/third_party/gnuplot-iostream
 
-CXX_FLAGS = -std=gnu++17
+CXX_FLAGS = -O3 -DNDEBUG -std=gnu++17
 

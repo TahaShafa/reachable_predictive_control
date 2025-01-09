@@ -12,6 +12,8 @@
 #include "solve_ode/solve_ode.h"
 #include "uav/uav_dynamics.h"
 
+const double pi = 3.141592653589793;
+
 ControllerSynthesis::ControllerSynthesis(std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics, std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics, Eigen::VectorXd initialState, Eigen::VectorXd y, Eigen::MatrixXd inputDynamics, int stateDimension, int inputDimension, double t_final, double epsilon, double k, double delta_t) : proxyDynamics(proxyDynamics), trueDynamics(trueDynamics), initialState(initialState), y(y), inputDynamics(inputDynamics), stateDimension(stateDimension), inputDimension(inputDimension), t_final(t_final), epsilon(epsilon), k(k), delta_t(delta_t){
   // Constructor -- setting initial conditions
   // Group of variables needed to evaluate integral solutions
@@ -22,18 +24,17 @@ ControllerSynthesis::ControllerSynthesis(std::function<Eigen::VectorXd(double, E
   
   tau = delta_t * (inputDimension + 1); // tau needs to be defined before r
   r = radius(k); // Generate circle of convergence
+
   // Create containers to hold the controlled trajectory, control signals, and theta
   // Controlled Trajectory
   initialState = columnVectorOrientation(initialState);
   states.conservativeResize(initialState.size(), 1);
   states.col(0) = initialState;
-  std::cout << "Initial State: " << initialState << std::endl << "states: " << states << std::endl;
   // Controlled Input
   Eigen::VectorXd u0 = initialInput();
   u0 = columnVectorOrientation(u0);
   inputs.conservativeResize(u0.size(), 1);
   inputs.col(0) = u0;
-  std::cout << "Initial Input: " << inputs << std::endl;
 
   // Update states and inputs with the initial reached state and corresponding control u_{0,0}
   states.conservativeResize(initialState.size(), 1);
@@ -48,7 +49,6 @@ void ControllerSynthesis::initializeController() {
   // Create containers to hold the controlled trajectory, control signals, and theta
   // Controlled Trajectory
   initialState = columnVectorOrientation(initialState);
-  std::cout << "Initial State: " << initialState << std::endl;
   
   // Controlled Input
   Eigen::VectorXd u0 = initialInput();
@@ -56,7 +56,6 @@ void ControllerSynthesis::initializeController() {
   // Append u0 to inputs
   inputs.conservativeResize(Eigen::NoChange, inputs.cols() + 1);
   inputs.col(inputs.cols() - 1) = u0;
-  std::cout << "Initial Input: " << u0 << std::endl;
 
   // Update states and inputs with the initial reached state and corresponding control u_{0,0}
   initialTrajectory(u0);
@@ -131,6 +130,13 @@ Eigen::VectorXd ControllerSynthesis::getInitialState() const {
   return initialState;
 }
 
+Eigen::MatrixXd ControllerSynthesis::getG0() const {
+  return inputDynamics;
+}
+void ControllerSynthesis::setG0(Eigen::MatrixXd newG0) {
+  inputDynamics = newG0;
+}
+
 Eigen::MatrixXd ControllerSynthesis::getStates() const {
   return states;
 }
@@ -159,10 +165,18 @@ std::vector<int> ControllerSynthesis::generateRandomSigns(int size) {
 Eigen::MatrixXd ControllerSynthesis::pseudoInverse(const Eigen::MatrixXd &A) {
   Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-  // Compute the reciprocal of all singular values
+  // Define a tolerance for zero singular values
+  double tolerance = std::numeric_limits<double>::epsilon() * 
+                     std::max(A.rows(), A.cols()) * svd.singularValues().array().abs().maxCoeff();
+
+  // Compute the reciprocal of all singular values, setting small values to zero
   Eigen::VectorXd singularValuesInv = svd.singularValues();
   for (int i = 0; i < singularValuesInv.size(); ++i) {
-    singularValuesInv(i) = 1.0 / singularValuesInv(i);
+    if (singularValuesInv(i) > tolerance) {
+      singularValuesInv(i) = 1.0 / singularValuesInv(i);
+    } else {
+      singularValuesInv(i) = 0.0; // Ignore very small singular values
+    }
   }
 
   // Return V*singularValuesInv*U^T
@@ -172,7 +186,10 @@ Eigen::MatrixXd ControllerSynthesis::pseudoInverse(const Eigen::MatrixXd &A) {
 // Calculate initial control input u_{0,0}
 Eigen::VectorXd ControllerSynthesis::initialInput() {
   // Compute the vector difference
-  Eigen::VectorXd vect = y - initialState;
+  // The first two lines are needed in the case where the bottom two rows of the dynamics are unknown
+  Eigen::VectorXd y_unknown = y.bottomRows(2); 
+  Eigen::VectorXd initialState_unknown = initialState.bottomRows(2);
+  Eigen::VectorXd vect = y_unknown - initialState_unknown;
 
   // Normalize vect to get u_hat
   Eigen::VectorXd u_hat = vect / vect.norm();
@@ -397,7 +414,7 @@ std::pair<double, Eigen::VectorXd> ControllerSynthesis::zSequence(const Eigen::V
 
   // Append the new theta value
   theta.push_back(theta_new);
-  std::cout << "theta = " << theta_new << std::endl;
+  //std::cout << "theta = " << theta_new << std::endl;
 
   // Calculate the corresponding point on the line: y_line = theta_new * y
   Eigen::VectorXd y_line = theta_new * (y - initialState) + initialState;
@@ -474,7 +491,12 @@ std::pair<Eigen::VectorXd, double> ControllerSynthesis::dist_true(const Eigen::V
   glp_load_matrix(lp, num_vars, ia.data(), ja.data(), ar.data());
 
   // Solve the linear programming problem
-  glp_simplex(lp, NULL);
+  glp_smcp params;                  // Simplex method control parameters
+  glp_init_smcp(&params);           // Initialize parameters to default values
+  params.msg_lev = GLP_MSG_OFF;     // Turn off solver messages
+  //glp_simplex(lp, NULL);
+  glp_simplex(lp, &params);
+
 
   // Get the solution (lambda_optimal)
   Eigen::VectorXd lambda_optimal(num_vars);
@@ -499,15 +521,17 @@ void ControllerSynthesis::savePlotToFigures(
     const std::vector<std::pair<double, double>> &synthesizedTrajectory,
     const std::vector<std::pair<double, double>> &desiredTrajectory,
     int iteration,
+    int controlIteration,
     const std::vector<std::pair<double, double>> &convergentRadius,
-    const std::vector<std::pair<double, double>> &reachableSet) {
+    const std::vector<std::vector<double>> &reachableSet) {
       // Ensure the `figures` directory exists
-    std::filesystem::path figuresDir = std::filesystem::current_path().parent_path() / "figures/grs_waypoints";
+    std::filesystem::path figuresDir = std::filesystem::current_path().parent_path() / "figures/vehicle_navigation/velocity_one_circle/zoomed_in";
     std::filesystem::create_directory(figuresDir);
 
     // Generate a unique filename for each iteration
     std::ostringstream filename;
-    filename << "trajectory_plot_grs_" << iteration << ".png";
+    filename << "vehicle_velocity_circle_" << controlIteration << "_" << iteration << ".png";
+    
 
     // Define the output file path
     std::filesystem::path outputFile = figuresDir / filename.str();
@@ -516,24 +540,24 @@ void ControllerSynthesis::savePlotToFigures(
     Gnuplot gp;
     gp << "set terminal pngcairo enhanced size 800,600\n"; // Use PNG format
     gp << "set output '" << outputFile.string() << "'\n";  // Set output file
-    gp << "set title 'Real-Time Trajectory Following Using Reachable Predictive Control Within 0.2 Seconds'\n";
-    gp << "set xlabel 'x_{1}' font ',14' enhanced\n";
-    gp << "set ylabel 'x_{2}' font ',14' enhanced\n";
+    gp << "set title 'Reachable Predictive Control Trajectory Following for Autonomous Vehicle'\n";
+    gp << "set xlabel 'steering angle (radians)' font ',14' enhanced\n";
+    gp << "set ylabel 'velocity (m/s)' font ',14' enhanced\n";
 
     /*// Set axis ranges*/
     /*gp << "set xrange [" << -21.0 << ":" << 0.0 << "]\n";*/
     /*gp << "set yrange [" << 0.0 << ":" << 16.0 << "]\n";*/
 
     // Set axis ranges
-    gp << "set xrange [" << -25.0 << ":" << 25.0 << "]\n";
-    gp << "set yrange [" << -20.0 << ":" << 25.0 << "]\n";
+    gp << "set xrange [" << -0.08 << ":" << 0.08 << "]\n";
+    gp << "set yrange [" << 0.0 << ":" << 1.2 << "]\n";
 
     // Specify which trajectories to plot
     gp << "plot ";
     if (!reachableSet.empty()) {
       gp << "'-' with lines title 'Guaranteed Reachable Set', ";
     }
-    gp << "'-' with lines lw 2.5 lc rgb 'black' title 'Desired Trajectory', "
+    gp << "'-' with lines lw 1.5 lc rgb 'black' title 'Desired Trajectory', "
        << "'-' with lines lw 2.5 title 'Learned Trajectory'";
     if (!convergentRadius.empty()){
        gp << ", '-' with lines title 'Convergence Circle'";
@@ -553,10 +577,71 @@ void ControllerSynthesis::savePlotToFigures(
     std::cout << "Plot saved to: " << outputFile.string() << std::endl;
 }
 
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeControl(bool view_plot, bool save_plot) {
-  std::cout << "Number of States: " << states.cols() << std::endl;
+void ControllerSynthesis::savePlotToFigures_temporary(
+    const std::vector<std::pair<double, double>> &synthesizedTrajectory,
+    const std::vector<std::pair<double, double>> &desiredTrajectory,
+    int iteration,
+    int controlIteration,
+    const std::vector<std::pair<double, double>> &convergentRadius,
+    const std::vector<std::vector<double>> &reachableSet) {
+      // Ensure the `figures` directory exists
+    std::filesystem::path figuresDir = std::filesystem::current_path().parent_path() / "figures/vehicle_navigation/velocity_one_circle/zoomed_out";
+    std::filesystem::create_directory(figuresDir);
 
-  std::vector<std::pair<double, double>> proxyTrajectory;
+    // Generate a unique filename for each iteration
+    std::ostringstream filename;
+    filename << "vehicle_velocity_circle_" << controlIteration << "_" << iteration << ".png";
+    
+
+    // Define the output file path
+    std::filesystem::path outputFile = figuresDir / filename.str();
+
+    // Plot using Gnuplot
+    Gnuplot gp;
+    gp << "set terminal pngcairo enhanced size 800,600\n"; // Use PNG format
+    gp << "set output '" << outputFile.string() << "'\n";  // Set output file
+    gp << "set title 'Reachable Predictive Control Trajectory Following for Autonomous Vehicle'\n";
+    gp << "set xlabel 'steering angle (radians)' font ',14' enhanced\n";
+    gp << "set ylabel 'velocity (m/s)' font ',14' enhanced\n";
+
+    /*// Set axis ranges*/
+    /*gp << "set xrange [" << -21.0 << ":" << 0.0 << "]\n";*/
+    /*gp << "set yrange [" << 0.0 << ":" << 16.0 << "]\n";*/
+
+    // Set axis ranges
+    gp << "set xrange [" << -pi/2 << ":" << pi/2 << "]\n";
+    gp << "set yrange [" << 0.0 << ":" << 1.2 << "]\n";
+
+    // Specify which trajectories to plot
+    gp << "plot ";
+    if (!reachableSet.empty()) {
+      gp << "'-' with lines title 'Guaranteed Reachable Set', ";
+    }
+    gp << "'-' with lines lw 1.5 lc rgb 'black' title 'Desired Trajectory', "
+       << "'-' with lines lw 2.5 title 'Learned Trajectory'";
+    if (!convergentRadius.empty()){
+       gp << ", '-' with lines title 'Convergence Circle'";
+    }
+    gp << "\n";
+    if (!reachableSet.empty()) {
+      std::cout << "reachable set is not empty" << std::endl;
+      gp.send1d(reachableSet);
+    }
+    gp.send1d(desiredTrajectory);   // Send desired trajectory
+    gp.send1d(synthesizedTrajectory);         // Send learned trajectory
+
+    if (!convergentRadius.empty()) {
+      gp.send1d(convergentRadius);
+    }
+
+    std::cout << "Plot saved to: " << outputFile.string() << std::endl;
+}
+
+
+
+std::tuple<Eigen::VectorXd, Eigen::MatrixXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeControl(bool view_plot, bool save_plot, int controlIteration) {
+
+  std::vector<std::vector<double>> proxyTrajectory;
 
   // Start measuring time
   auto start = std::chrono::high_resolution_clock::now();
@@ -570,9 +655,8 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
   Eigen::VectorXd lambda_optimal;
   double q;
   std::tie(lambda_optimal, q) = dist_true(z);
-    
+
   for (int i = 0; i < iteration; ++i) {
-    std::cout << "Iteration: " << i << std::endl;
     Eigen::VectorXd u = (1 - epsilon) * (lambda_optimal.transpose() * getInputs().rightCols(inputDimension + 1).transpose());
 
     // Intermediate control inputs
@@ -607,14 +691,12 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
 
     std::cout << "theta(t): " << t << std::endl;
 
-    if (t > 0.8) {
-      std::cout << "Number of States: " << states.cols() << std::endl;
+    if (t > 0.90) {
       // Prepare state data for Gnuplot
       std::vector<std::pair<double, double>> state_data;
       for (int i = 0; i < states.cols(); ++i) {
         state_data.emplace_back(states(0, i), states(1, i));
       }
-  std::cout << "Number of State Data Columns: " << state_data.size() << std::endl;
 
       std::vector<std::pair<double, double>> desiredTrajectory = generateLinearTrajectory(initialState, y);
 
@@ -622,16 +704,15 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
         // Plot using Gnuplot
         Gnuplot gp;
         gp << "set title 'Trajectory Plot of States'\n";
-        //gp << "set xrange [" << -50.0 << ":" << 50.0 << "]\n";
-        //gp << "set yrange [" << -50.0 << ":" << 50.0 << "]\n";
+        gp << "set xrange [" << -1.0 << ":" << 1.0 << "]\n";
+        gp << "set yrange [" << 0.0 << ":" << 1.0 << "]\n";
         gp << "plot '-' with lines title 'Learned Trajectory', '-' with lines title 'Desired Trajectory'\n";
         gp.send1d(state_data);
         gp.send1d(desiredTrajectory);
       }
-      std::cout << "Max theta reached" << std::endl;
+      //std::cout << "Max theta reached" << std::endl;
       Eigen::MatrixXd lastColumn = states.col(states.cols() - 1);
-      std::cout << "End State: " << lastColumn << std::endl;
-      return std::make_pair(lastColumn, inputs);
+      return std::make_tuple(lastColumn, inputs, states);
       break;
     }
 
@@ -664,7 +745,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
         for (int i = 0; i < states.cols(); ++i) {
           state_data.emplace_back(states(0, i), states(1, i));
         }
-        
+
         // Create the desired trajectory
         std::vector<std::pair<double, double>> desiredTrajectory = generateLinearTrajectory(initialState, y);
         std::cout << "getRadius: " << getRadius() << std::endl;
@@ -674,14 +755,16 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
         double x_center = lastColumn(0); double y_center = lastColumn(1);
         double radius = getRadius();
         std::vector<std::pair<double, double>> convergentCircle = generateCircle(radius, x_center, y_center);
-        /*std::vector<std::pair<double, double>> convergentCircle = {};*/
+        //std::vector<std::pair<double, double>> convergentCircle = {};
 
         // Save plots to the figures folder
-        savePlotToFigures(state_data, desiredTrajectory, i, convergentCircle, proxyTrajectory);
+        //savePlotToFigures(state_data, desiredTrajectory, i, convergentCircle, proxyTrajectory);
+         savePlotToFigures(state_data, desiredTrajectory, i, controlIteration, convergentCircle);
+         savePlotToFigures_temporary(state_data, desiredTrajectory, i, controlIteration);
+
       }
     }
   }
-  std::cout << "Number of States: " << states.cols() << std::endl;
 
   // Stop measuring time
   auto stop = std::chrono::high_resolution_clock::now();
@@ -705,6 +788,8 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
     // Plot using Gnuplot
     Gnuplot gp;
     gp << "set title 'Trajectory Plot of States'\n";
+    gp << "set xrange [" << -1.0 << ":" << 1.0 << "]\n";
+    gp << "set yrange [" << 0.0 << ":" << 1.0 << "]\n";
     gp << "plot '-' with lines title 'Learned Trajectory', '-' with lines title 'Desired Trajectory'\n";
     gp.send1d(state_data);
     gp.send1d(desiredTrajectory);
@@ -713,7 +798,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ControllerSynthesis::synthesizeContr
   // Extract the last column
   Eigen::VectorXd lastColumn = states.col(states.cols() - 1);
   std::cout << "End State: " << lastColumn << std::endl;
-  return std::make_pair(lastColumn, inputs);
+  return std::make_tuple(lastColumn, inputs, states);
 
     /*if (save_plot) {*/
     /*  // Save plots to the figures folder*/

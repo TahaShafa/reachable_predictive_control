@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <glpk.h>
+#include <tuple>
 #include <iostream>
 
 
@@ -35,7 +36,7 @@ private:
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> proxyDynamics;
     std::function<Eigen::VectorXd(double, Eigen::VectorXd, Eigen::VectorXd)> trueDynamics;
     // Temporary variable determining number of iterations during control synthesis
-    int iteration = 60;
+    int iteration = 80;
     
     // Orient to column vector for consistency in calculations
     Eigen::VectorXd columnVectorOrientation(const Eigen::VectorXd &vector) {
@@ -80,6 +81,8 @@ private:
     double getDelta_t() const;
     void setInitialState(Eigen::VectorXd newInitialState);
     Eigen::VectorXd getInitialState() const;
+    Eigen::MatrixXd getG0() const;
+    void setG0(Eigen::MatrixXd newG0);
     Eigen::MatrixXd getStates() const;
     Eigen::MatrixXd getInputs() const;
 
@@ -108,17 +111,27 @@ private:
     std::pair<Eigen::VectorXd, double> dist_true(const Eigen::VectorXd& z);
 
     // Synthesize control and generate control trajectory
-    std::pair<Eigen::VectorXd, Eigen::MatrixXd> synthesizeControl(bool view_plot = false, bool save_plot = false);
+    std::tuple<Eigen::VectorXd, Eigen::MatrixXd, Eigen::MatrixXd> synthesizeControl(bool view_plot = false, bool save_plot = false, int controlIteration = 0);
 
     // Save plots to figures
     void savePlotToFigures(
       const std::vector<std::pair<double, double>> &synthesizedTrajectory,
       const std::vector<std::pair<double, double>> &desiredTrajectory,
       int iteration = 0,
+      int controlIteration = 0,
       const std::vector<std::pair<double, double>> &convergentRadius = {},
-      const std::vector<std::pair<double, double>> &reachableSet = {});
+      const std::vector<std::vector<double>> &reachableSet = {});
 
+        // Save plots to figures
+    void savePlotToFigures_temporary(
+      const std::vector<std::pair<double, double>> &synthesizedTrajectory,
+      const std::vector<std::pair<double, double>> &desiredTrajectory,
+      int iteration = 0,
+      int controlIteration = 0,
+      const std::vector<std::pair<double, double>> &convergentRadius = {},
+      const std::vector<std::vector<double>> &reachableSet = {});
 };
+
 
 
 #endif
