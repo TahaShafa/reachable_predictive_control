@@ -1,0 +1,2 @@
+/usr/bin/ar qc librpc_core.a CMakeFiles/rpc_core.dir/src/uav/uav_dynamics.cpp.o CMakeFiles/rpc_core.dir/src/grs/grs.cpp.o CMakeFiles/rpc_core.dir/src/synthesis/controller_synthesis.cpp.o CMakeFiles/rpc_core.dir/src/solve_ode/solve_ode.cpp.o CMakeFiles/rpc_core.dir/src/car/car_dynamics.cpp.o
+/usr/bin/ranlib librpc_core.a
